@@ -288,6 +288,7 @@ contract TSwapPool is ERC20 {
         revertIfZero(outputReserves)
         returns (uint256 inputAmount)
     {
+        //@audit magic numbers
         return
             ((inputReserves * outputAmount) * 10000) /
             ((outputReserves - outputAmount) * 997);
@@ -300,6 +301,7 @@ contract TSwapPool is ERC20 {
         uint256 minOutputAmount,
         uint64 deadline
     )
+    //@audit - info this shoudl be external
         public
         revertIfZero(inputAmount)
         revertIfDeadlinePassed(deadline)

@@ -19,36 +19,42 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 contract PoolFactory {
     error PoolFactory__PoolAlreadyExists(address tokenAddress);
+    //@audit info this error is not used
     error PoolFactory__PoolDoesNotExist(address tokenAddress);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    mapping(address token => address pool) private s_pools;
-    mapping(address pool => address token) private s_tokens;
+    mapping(address token => address pool) private s_pools; //e probably poolToken -> Pool
+    mapping(address pool => address token) private s_tokens;  //e mapping back
 
     address private immutable i_wethToken;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
+
+    //@audit missing index fields
     event PoolCreated(address tokenAddress, address poolAddress);
 
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     constructor(address wethToken) {
+        //@audit lacks zero check
         i_wethToken = wethToken;
     }
 
     /*//////////////////////////////////////////////////////////////
                            EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+    //e token address mpaed with wth for a token/weth pool
     function createPool(address tokenAddress) external returns (address) {
         if (s_pools[tokenAddress] != address(0)) {
             revert PoolFactory__PoolAlreadyExists(tokenAddress);
         }
         string memory liquidityTokenName = string.concat("T-Swap ", IERC20(tokenAddress).name());
+        // e "T-swap DAI"
         string memory liquidityTokenSymbol = string.concat("ts", IERC20(tokenAddress).name());
         TSwapPool tPool = new TSwapPool(tokenAddress, i_wethToken, liquidityTokenName, liquidityTokenSymbol);
         s_pools[tokenAddress] = address(tPool);
