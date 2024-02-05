@@ -42,13 +42,14 @@ contract TSwapPool is ERC20 {
     //////////////////////////////////////////////////////////////*/
     IERC20 private immutable i_wethToken;
     IERC20 private immutable i_poolToken;
-    uint256 private constant MINIMUM_WETH_LIQUIDITY = 1_000_000_000;
+    uint256 private constant MINIMUM_WETH_LIQUIDITY = 1_000_000_000; 
     uint256 private swap_count = 0;
     uint256 private constant SWAP_COUNT_MAX = 10;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
+    //@audit missing index fields for more than 3
     event LiquidityAdded(
         address indexed liquidityProvider,
         uint256 wethDeposited,
@@ -93,6 +94,8 @@ contract TSwapPool is ERC20 {
         string memory liquidityTokenName,
         string memory liquidityTokenSymbol
     ) ERC20(liquidityTokenName, liquidityTokenSymbol) {
+
+        //@audit info zero address check
         i_wethToken = IERC20(wethToken);
         i_poolToken = IERC20(poolToken);
     }
@@ -115,12 +118,16 @@ contract TSwapPool is ERC20 {
         uint256 minimumLiquidityTokensToMint,
         uint256 maximumPoolTokensToDeposit,
         uint64 deadline
+        //@audit -- info deadline not being used high
+        //if someone setsa deadline, perhaps nextblock
+        //they could still deposit!
     )
         external
         revertIfZero(wethToDeposit)
         returns (uint256 liquidityTokensToMint)
     {
         if (wethToDeposit < MINIMUM_WETH_LIQUIDITY) {
+            //@ audit info MINIMUM_WETH_LIQUIDITY is a cosntant and therefor not required to be emitted
             revert TSwapPool__WethDepositAmountTooLow(
                 MINIMUM_WETH_LIQUIDITY,
                 wethToDeposit
@@ -128,6 +135,7 @@ contract TSwapPool is ERC20 {
         }
         if (totalLiquidityTokenSupply() > 0) {
             uint256 wethReserves = i_wethToken.balanceOf(address(this));
+            //@audit gas dont' need this line because not useed
             uint256 poolTokenReserves = i_poolToken.balanceOf(address(this));
             // Our invariant says weth, poolTokens, and liquidity tokens must always have the same ratio after the
             // initial deposit
@@ -144,25 +152,17 @@ contract TSwapPool is ERC20 {
             // (wethReserves + wethToDeposit) / poolTokensToDeposit = wethReserves
             // (wethReserves + wethToDeposit)  = wethReserves * poolTokensToDeposit
             // (wethReserves + wethToDeposit) / wethReserves  =  poolTokensToDeposit
-            uint256 poolTokensToDeposit = getPoolTokensToDepositBasedOnWeth(
-                wethToDeposit
-            );
+            uint256 poolTokensToDeposit = getPoolTokensToDepositBasedOnWeth(wethToDeposit);
+
             if (maximumPoolTokensToDeposit < poolTokensToDeposit) {
-                revert TSwapPool__MaxPoolTokenDepositTooHigh(
-                    maximumPoolTokensToDeposit,
-                    poolTokensToDeposit
-                );
+                //e if we calculate too many pool tokens to deposit, we revert
+                revert TSwapPool__MaxPoolTokenDepositTooHigh(maximumPoolTokensToDeposit, poolTokensToDeposit);
             }
 
             // We do the same thing for liquidity tokens. Similar math.
-            liquidityTokensToMint =
-                (wethToDeposit * totalLiquidityTokenSupply()) /
-                wethReserves;
+            liquidityTokensToMint = (wethToDeposit * totalLiquidityTokenSupply()) / wethReserves;
             if (liquidityTokensToMint < minimumLiquidityTokensToMint) {
-                revert TSwapPool__MinLiquidityTokensToMintTooLow(
-                    minimumLiquidityTokensToMint,
-                    liquidityTokensToMint
-                );
+                revert TSwapPool__MinLiquidityTokensToMintTooLow( minimumLiquidityTokensToMint, liquidityTokensToMint);
             }
             _addLiquidityMintAndTransfer(
                 wethToDeposit,
@@ -177,6 +177,11 @@ contract TSwapPool is ERC20 {
                 maximumPoolTokensToDeposit,
                 wethToDeposit
             );
+
+            //external call 
+            //updating a variable
+            //e not a state variable
+            //@audit info this would be better ifthis was before _addliquditymintandtransfercall to follow CEI
             liquidityTokensToMint = wethToDeposit;
         }
     }
@@ -191,6 +196,8 @@ contract TSwapPool is ERC20 {
         uint256 liquidityTokensToMint
     ) private {
         _mint(msg.sender, liquidityTokensToMint);
+        //@audit lwo this is backwards should be: 
+        //emit LiquidityAdded(msg.sender, wethToDeposit, poolTokensToDeposit);
         emit LiquidityAdded(msg.sender, poolTokensToDeposit, wethToDeposit);
 
         // Interactions
@@ -305,6 +312,7 @@ contract TSwapPool is ERC20 {
         public
         revertIfZero(inputAmount)
         revertIfDeadlinePassed(deadline)
+        //@audit - low 
         returns (uint256 output)
     {
         uint256 inputReserves = inputToken.balanceOf(address(this));
