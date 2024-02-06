@@ -160,6 +160,8 @@ contract TSwapPool is ERC20 {
             }
 
             // We do the same thing for liquidity tokens. Similar math.
+            //e 10 weth * 100 LP / 100 WTH
+            //10 LP
             liquidityTokensToMint = (wethToDeposit * totalLiquidityTokenSupply()) / wethReserves;
             if (liquidityTokensToMint < minimumLiquidityTokensToMint) {
                 revert TSwapPool__MinLiquidityTokensToMintTooLow( minimumLiquidityTokensToMint, liquidityTokensToMint);
@@ -227,19 +229,15 @@ contract TSwapPool is ERC20 {
         revertIfZero(minPoolTokensToWithdraw)
     {
         // We do the same math as above
-        uint256 wethToWithdraw = (liquidityTokensToBurn *
-            i_wethToken.balanceOf(address(this))) / totalLiquidityTokenSupply();
-        uint256 poolTokensToWithdraw = (liquidityTokensToBurn *
-            i_poolToken.balanceOf(address(this))) / totalLiquidityTokenSupply();
+        uint256 wethToWithdraw = (liquidityTokensToBurn * i_wethToken.balanceOf(address(this))) / totalLiquidityTokenSupply();
+        uint256 poolTokensToWithdraw = (liquidityTokensToBurn * i_poolToken.balanceOf(address(this))) / totalLiquidityTokenSupply();
 
         if (wethToWithdraw < minWethToWithdraw) {
             revert TSwapPool__OutputTooLow(wethToWithdraw, minWethToWithdraw);
         }
+
         if (poolTokensToWithdraw < minPoolTokensToWithdraw) {
-            revert TSwapPool__OutputTooLow(
-                poolTokensToWithdraw,
-                minPoolTokensToWithdraw
-            );
+            revert TSwapPool__OutputTooLow(poolTokensToWithdraw, minPoolTokensToWithdraw);
         }
 
         _burn(msg.sender, liquidityTokensToBurn);
@@ -278,29 +276,27 @@ contract TSwapPool is ERC20 {
         // totalPoolTokensOfPool) + (wethToDeposit * poolTokensToDeposit) = k
         // (totalWethOfPool * totalPoolTokensOfPool) + (wethToDeposit * totalPoolTokensOfPool) = k - (totalWethOfPool *
         // poolTokensToDeposit) - (wethToDeposit * poolTokensToDeposit)
+
+        //@audit info magic numbers
         uint256 inputAmountMinusFee = inputAmount * 997;
         uint256 numerator = inputAmountMinusFee * outputReserves;
         uint256 denominator = (inputReserves * 1000) + inputAmountMinusFee;
         return numerator / denominator;
     }
 
-    function getInputAmountBasedOnOutput(
-        uint256 outputAmount,
-        uint256 inputReserves,
-        uint256 outputReserves
-    )
-        public
-        pure
+    function getInputAmountBasedOnOutput(uint256 outputAmount,uint256 inputReserves,uint256 outputReserves) public pure
         revertIfZero(outputAmount)
         revertIfZero(outputReserves)
         returns (uint256 inputAmount)
     {
-        //@audit magic numbers
+        // 91.3% fee???
+        //@audit - high 
         return
             ((inputReserves * outputAmount) * 10000) /
             ((outputReserves - outputAmount) * 997);
     }
 
+    //@audit info wheres' thenatspac???
     function swapExactInput(
         IERC20 inputToken,
         uint256 inputAmount,
@@ -318,11 +314,7 @@ contract TSwapPool is ERC20 {
         uint256 inputReserves = inputToken.balanceOf(address(this));
         uint256 outputReserves = outputToken.balanceOf(address(this));
 
-        uint256 outputAmount = getOutputAmountBasedOnInput(
-            inputAmount,
-            inputReserves,
-            outputReserves
-        );
+        uint256 outputAmount = getOutputAmountBasedOnInput(inputAmount, inputReserves, outputReserves);
 
         if (outputAmount < minOutputAmount) {
             revert TSwapPool__OutputTooLow(outputAmount, minOutputAmount);
@@ -342,10 +334,15 @@ contract TSwapPool is ERC20 {
      * @param outputToken ERC20 token to send to caller
      * @param outputAmount The exact amount of tokens to send to caller
      */
+
+     //@audit need an max input amount
+
+     //q why are we not getting the maxiumum input?
     function swapExactOutput(
         IERC20 inputToken,
         IERC20 outputToken,
         uint256 outputAmount,
+        //uint256 maxInputAmount
         uint64 deadline
     )
         public
@@ -356,11 +353,9 @@ contract TSwapPool is ERC20 {
         uint256 inputReserves = inputToken.balanceOf(address(this));
         uint256 outputReserves = outputToken.balanceOf(address(this));
 
-        inputAmount = getInputAmountBasedOnOutput(
-            outputAmount,
-            inputReserves,
-            outputReserves
-        );
+        inputAmount = getInputAmountBasedOnOutput(outputAmount, inputReserves, outputReserves);
+
+        //@audit no slippage protection
 
         _swap(inputToken, inputAmount, outputToken, outputAmount);
     }
@@ -370,16 +365,10 @@ contract TSwapPool is ERC20 {
      * @param poolTokenAmount amount of pool tokens to sell
      * @return wethAmount amount of WETH received by caller
      */
-    function sellPoolTokens(
-        uint256 poolTokenAmount
-    ) external returns (uint256 wethAmount) {
-        return
-            swapExactOutput(
-                i_poolToken,
-                i_wethToken,
-                poolTokenAmount,
-                uint64(block.timestamp)
-            );
+    function sellPoolTokens( uint256 poolTokenAmount) external returns (uint256 wethAmount) {
+        //@audit thi sis wrong
+        //swap exact input(minWethToReceive)
+        return swapExactOutput(i_poolToken,i_wethToken, poolTokenAmount,uint64(block.timestamp));
     }
 
     /**
@@ -390,32 +379,18 @@ contract TSwapPool is ERC20 {
      * @param outputToken ERC20 token to send to caller
      * @param outputAmount Amount of tokens to send to caller
      */
-    function _swap(
-        IERC20 inputToken,
-        uint256 inputAmount,
-        IERC20 outputToken,
-        uint256 outputAmount
-    ) private {
-        if (
-            _isUnknown(inputToken) ||
-            _isUnknown(outputToken) ||
-            inputToken == outputToken
-        ) {
+    function _swap(IERC20 inputToken,uint256 inputAmount,IERC20 outputToken,uint256 outputAmount) private {
+        if (_isUnknown(inputToken) ||_isUnknown(outputToken) || inputToken == outputToken) {
             revert TSwapPool__InvalidToken();
         }
 
         swap_count++;
         if (swap_count >= SWAP_COUNT_MAX) {
             swap_count = 0;
+            //@audit what is this???
             outputToken.safeTransfer(msg.sender, 1_000_000_000_000_000_000);
         }
-        emit Swap(
-            msg.sender,
-            inputToken,
-            inputAmount,
-            outputToken,
-            outputAmount
-        );
+        emit Swap(msg.sender,inputToken,inputAmount,outputToken,outputAmount);
 
         inputToken.safeTransferFrom(msg.sender, address(this), inputAmount);
         outputToken.safeTransfer(msg.sender, outputAmount);
@@ -440,6 +415,7 @@ contract TSwapPool is ERC20 {
     }
 
     /// @notice a more verbose way of getting the total supply of liquidity tokens
+    //@audit info this should be external
     function totalLiquidityTokenSupply() public view returns (uint256) {
         return totalSupply();
     }
@@ -448,6 +424,7 @@ contract TSwapPool is ERC20 {
         return address(i_poolToken);
     }
 
+    //@audit more verbose name?
     function getWeth() external view returns (address) {
         return address(i_wethToken);
     }
@@ -457,20 +434,10 @@ contract TSwapPool is ERC20 {
     }
 
     function getPriceOfOneWethInPoolTokens() external view returns (uint256) {
-        return
-            getOutputAmountBasedOnInput(
-                1e18,
-                i_wethToken.balanceOf(address(this)),
-                i_poolToken.balanceOf(address(this))
-            );
+        return getOutputAmountBasedOnInput(1e18, i_wethToken.balanceOf(address(this)), i_poolToken.balanceOf(address(this)));
     }
 
     function getPriceOfOnePoolTokenInWeth() external view returns (uint256) {
-        return
-            getOutputAmountBasedOnInput(
-                1e18,
-                i_poolToken.balanceOf(address(this)),
-                i_wethToken.balanceOf(address(this))
-            );
+        return getOutputAmountBasedOnInput(1e18, i_poolToken.balanceOf(address(this)), i_wethToken.balanceOf(address(this)));
     }
 }

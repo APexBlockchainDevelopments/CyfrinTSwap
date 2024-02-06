@@ -53,9 +53,12 @@ contract PoolFactory {
         if (s_pools[tokenAddress] != address(0)) {
             revert PoolFactory__PoolAlreadyExists(tokenAddress);
         }
+        // e "T-swap DAI" 
+        //q what if name function reverts?
         string memory liquidityTokenName = string.concat("T-Swap ", IERC20(tokenAddress).name());
-        // e "T-swap DAI"
         string memory liquidityTokenSymbol = string.concat("ts", IERC20(tokenAddress).name());
+        //"tsUDC"
+        //@audit info this should be .symbol not .name
         TSwapPool tPool = new TSwapPool(tokenAddress, i_wethToken, liquidityTokenName, liquidityTokenSymbol);
         s_pools[tokenAddress] = address(tPool);
         s_tokens[address(tPool)] = tokenAddress;
