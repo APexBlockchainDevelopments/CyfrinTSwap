@@ -307,7 +307,6 @@ contract TSwapPool is ERC20 {
         public
         revertIfZero(inputAmount)
         revertIfDeadlinePassed(deadline)
-        //@audit - low 
         returns (uint256 output)
     {
         uint256 inputReserves = inputToken.balanceOf(address(this));

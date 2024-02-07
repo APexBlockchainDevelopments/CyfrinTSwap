@@ -97,6 +97,101 @@ contract TSwapPoolTest is Test {
     ///////////////////
 
     function test_expectedFeesAreEqualToActualFees() external {
+        uint256 intialLiquidity = 100e18;
+        vm.startPrank(liquidityProvider);
+        weth.approve(address(pool), intialLiquidity);
+        poolToken.approve(address(pool), intialLiquidity);
+
+        pool.deposit({
+            wethToDeposit: intialLiquidity,
+            minimumLiquidityTokensToMint: 0,
+            maximumPoolTokensToDeposit: intialLiquidity,
+            deadline: uint64(block.timestamp)
+        });
+        vm.stopPrank();
+
+        //User has 11 tokens
+        address someUser = makeAddr("someUser");
+        uint256 userInitialPoolTokenBalance = 11e18;
+        poolToken.mint(someUser, userInitialPoolTokenBalance);
+        vm.startPrank(someUser);
+
+        //User buys 1 WETH from the pool, paying with pool tokens
+        poolToken.approve(address(pool), type(uint256).max);
+        pool.swapExactOutput(
+            poolToken,
+            weth,
+            1 ether,
+            uint64(block.timestamp)
+        );
+
+        //Initial liquidity was 1:1 so user should have paid ~1 pool tokne
+        //However it sends much more than that. User started with 11 tokens and now only has less than 1
+        assertLt(poolToken.balanceOf(someUser), 1 ether);
+        vm.stopPrank();
+
+        //The liquidity proivder can run all funds from the pool now
+        //including those deposited by the user
+        vm.startPrank(liquidityProvider);
+
+        pool.withdraw(
+            pool.balanceOf(liquidityProvider),
+            1,
+            1,
+            uint64(block.timestamp)
+        );
+
+        vm.stopPrank();
+
+        assertEq(weth.balanceOf(address(pool)), 0);
+        assertEq(poolToken.balanceOf(address(pool)), 0);
+
+    }
+
+    function test_returnValuesForswapExactInput() external {
+        vm.startPrank(liquidityProvider);
+        weth.approve(address(pool), 200e18);
+        poolToken.approve(address(pool), 200e18);
+        pool.deposit(200e18, 200e18, 200e18, uint64(block.timestamp));
+        vm.stopPrank();
+
+        //first user
+        address firstUser = makeAddr("firstUser");
+        uint256 userInitialPoolTokenBalance = 1e18;
+        poolToken.mint(firstUser, userInitialPoolTokenBalance);
+        vm.startPrank(firstUser);
+        poolToken.approve(address(pool), type(uint256).max);
+        uint256 firstSwapAmount = pool.swapExactInput(
+            poolToken,
+            1e18,
+            weth,
+            1,
+            uint64(block.timestamp)
+        );
+
+        vm.stopPrank();
+
+        //seconduser
+        address secondUser = makeAddr("firstUser");
+        uint256 secondUserInitialPoolTokenBalance = 100e18;
+        poolToken.mint(secondUser, secondUserInitialPoolTokenBalance);
+        vm.startPrank(secondUser);
+        poolToken.approve(address(pool), type(uint256).max);
+        uint256 secondSwapAmount = pool.swapExactInput(
+            poolToken,
+            100e18,
+            weth,
+            1,
+            uint64(block.timestamp)
+        );
+
+        console.log(secondSwapAmount);
+
+        //Since the first user is swapping much less tokens than the second user we should expect to see different outputs. 
+        //However this is not the case. Both are defaulted to zero.
+
+        assertEq(firstSwapAmount, secondSwapAmount);
+
 
     }
 }
