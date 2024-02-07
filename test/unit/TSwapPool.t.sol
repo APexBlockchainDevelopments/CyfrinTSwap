@@ -91,4 +91,12 @@ contract TSwapPoolTest is Test {
         assertEq(pool.totalSupply(), 0);
         assert(weth.balanceOf(liquidityProvider) + poolToken.balanceOf(liquidityProvider) > 400e18);
     }
+
+    ///////////////////
+    ///Finding Tests///
+    ///////////////////
+
+    function test_expectedFeesAreEqualToActualFees() external {
+
+    }
 }

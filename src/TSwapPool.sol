@@ -49,7 +49,7 @@ contract TSwapPool is ERC20 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
-    //@audit missing index fields for more than 3
+    //@written missing index fields for more than 3
     event LiquidityAdded(
         address indexed liquidityProvider,
         uint256 wethDeposited,
@@ -95,7 +95,6 @@ contract TSwapPool is ERC20 {
         string memory liquidityTokenSymbol
     ) ERC20(liquidityTokenName, liquidityTokenSymbol) {
 
-        //@audit info zero address check
         i_wethToken = IERC20(wethToken);
         i_poolToken = IERC20(poolToken);
     }
@@ -118,7 +117,7 @@ contract TSwapPool is ERC20 {
         uint256 minimumLiquidityTokensToMint,
         uint256 maximumPoolTokensToDeposit,
         uint64 deadline
-        //@audit -- info deadline not being used high
+        //written -- info deadline not being used high
         //if someone setsa deadline, perhaps nextblock
         //they could still deposit!
     )
@@ -198,7 +197,7 @@ contract TSwapPool is ERC20 {
         uint256 liquidityTokensToMint
     ) private {
         _mint(msg.sender, liquidityTokensToMint);
-        //@audit lwo this is backwards should be: 
+        //@written lwo this is backwards should be: 
         //emit LiquidityAdded(msg.sender, wethToDeposit, poolTokensToDeposit);
         emit LiquidityAdded(msg.sender, poolTokensToDeposit, wethToDeposit);
 
@@ -290,7 +289,7 @@ contract TSwapPool is ERC20 {
         returns (uint256 inputAmount)
     {
         // 91.3% fee???
-        //@audit - high 
+        //written - high 
         return
             ((inputReserves * outputAmount) * 10000) /
             ((outputReserves - outputAmount) * 997);

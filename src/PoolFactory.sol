@@ -19,7 +19,7 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 contract PoolFactory {
     error PoolFactory__PoolAlreadyExists(address tokenAddress);
-    //@audit info this error is not used
+    //written-audit info this error is not used
     error PoolFactory__PoolDoesNotExist(address tokenAddress);
 
     /*//////////////////////////////////////////////////////////////
@@ -34,14 +34,13 @@ contract PoolFactory {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    //@audit missing index fields
     event PoolCreated(address tokenAddress, address poolAddress);
 
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     constructor(address wethToken) {
-        //@audit lacks zero check
+        //written  lacks zero check
         i_wethToken = wethToken;
     }
 
@@ -58,7 +57,7 @@ contract PoolFactory {
         string memory liquidityTokenName = string.concat("T-Swap ", IERC20(tokenAddress).name());
         string memory liquidityTokenSymbol = string.concat("ts", IERC20(tokenAddress).name());
         //"tsUDC"
-        //@audit info this should be .symbol not .name
+        //@written info this should be .symbol not .name
         TSwapPool tPool = new TSwapPool(tokenAddress, i_wethToken, liquidityTokenName, liquidityTokenSymbol);
         s_pools[tokenAddress] = address(tPool);
         s_tokens[address(tPool)] = tokenAddress;
