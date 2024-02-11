@@ -353,7 +353,7 @@ contract TSwapPool is ERC20 {
 
         inputAmount = getInputAmountBasedOnOutput(outputAmount, inputReserves, outputReserves);
 
-        //@audit no slippage protection
+        //@written no slippage protection
 
         _swap(inputToken, inputAmount, outputToken, outputAmount);
     }
@@ -364,7 +364,7 @@ contract TSwapPool is ERC20 {
      * @return wethAmount amount of WETH received by caller
      */
     function sellPoolTokens( uint256 poolTokenAmount) external returns (uint256 wethAmount) {
-        //@audit thi sis wrong
+        //@written this is wrong
         //swap exact input(minWethToReceive)
         return swapExactOutput(i_poolToken,i_wethToken, poolTokenAmount,uint64(block.timestamp));
     }
@@ -385,7 +385,7 @@ contract TSwapPool is ERC20 {
         swap_count++;
         if (swap_count >= SWAP_COUNT_MAX) {
             swap_count = 0;
-            //@audit what is this???
+            //@written breaks protocol invariant
             outputToken.safeTransfer(msg.sender, 1_000_000_000_000_000_000);
         }
         emit Swap(msg.sender,inputToken,inputAmount,outputToken,outputAmount);

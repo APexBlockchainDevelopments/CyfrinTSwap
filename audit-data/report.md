@@ -1,3 +1,98 @@
+---
+title: TSwap Audit Report
+author: Austin Paktos
+date: February 7, 2024
+header-includes:
+  - \usepackage{titling}
+  - \usepackage{graphicx}
+---
+
+\begin{titlepage}
+    \centering
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.5\textwidth]{logo.png} 
+    \end{figure}
+    \vspace*{2cm}
+    {\Huge\bfseries TSwap Audit Report\par}
+    \vspace{1cm}
+    {\Large Version 1.0\par}
+    \vspace{2cm}
+    {\Large\itshape Austin Patkos\par}
+    \vfill
+    {\large \today\par}
+\end{titlepage}
+
+
+Prepared by: [APex](https://austinpatkos.com)
+Lead Auditors: 
+- Austin Patkos
+
+# Protocol Summary
+
+This project is meant to be a permissionless way for users to swap assets between each other at a fair price. You can think of T-Swap as a decentralized asset/token exchange (DEX). 
+T-Swap is known as an [Automated Market Maker (AMM)](https://chain.link/education-hub/what-is-an-automated-market-maker-amm) because it doesn't use a normal "order book" style exchange, instead it uses "Pools" of an asset. 
+It is similar to Uniswap. To understand Uniswap, please watch this video: [Uniswap Explained](https://www.youtube.com/watch?v=DLu35sIqVTM)
+
+
+# Disclaimer
+
+Austin Patkos makes all effort to find as many vulnerabilities in the code in the given time period, but holds no responsibilities for the findings provided in this document. A security audit by the team is not an endorsement of the underlying business or product. The audit was time-boxed and the review of the code was solely on the security aspects of the Solidity implementation of the contracts.
+
+# Risk Classification
+
+|            |        | Impact |        |     |
+| ---------- | ------ | ------ | ------ | --- |
+|            |        | High   | Medium | Low |
+|            | High   | H      | H/M    | M   |
+| Likelihood | Medium | H/M    | M      | M/L |
+|            | Low    | M      | M/L    | L   |
+
+We use the [CodeHawks](https://docs.codehawks.com/hawks-auditors/how-to-evaluate-a-finding-severity) severity matrix to determine severity. See the documentation for more details.
+
+# Audit Details 
+
+# Audit Scope Details
+
+- Commit Hash: e643a8d4c2c802490976b538dd009b351b1c8dda
+- In Scope:
+```
+./src/
+#-- PoolFactory.sol
+#-- TSwapPool.sol
+```
+- Solc Version: 0.8.20
+- Chain(s) to deploy contract to: Ethereum
+- Tokens:
+  - Any ERC20 token
+
+
+## Scope 
+
+```
+./src/
+#-- PoolFactory.sol
+#-- TSwapPool.sol
+```
+
+## Roles
+
+- Liquidity Providers: Users who have liquidity deposited into the pools. Their shares are represented by the LP ERC20 tokens. They gain a 0.3% fee every time a swap is made. 
+- Users: Users who want to swap tokens.
+
+
+
+# Findings
+
+---
+title: TSwap Audit Report
+author: Austin Patkos
+date: February 7, 2024
+header-includes:
+  - \usepackage{titling}
+  - \usepackage{graphicx}
+---
+
 ## High
 
 ### [H-1] Incorrect fee calculation in `TSwapPool::getInputAmountBasedOnOutput` causes protocol to take too many too many tokens form user, resulting in lost fees.
